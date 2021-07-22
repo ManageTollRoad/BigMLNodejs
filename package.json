@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "nodemon ./app.js"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -13,5 +13,10 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
     "nodemon": "^2.0.12"
+  },
+  "devDependencies": {
+    "mongodb": "^4.0.1",
+    "node-rdkafka": "^2.10.1",
+    "uuid": "^8.3.2"
   }
 }

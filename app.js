@@ -1,35 +1,49 @@
-const createError = require('http-errors');
-const express = require('express');
-const path = require('path');
-const cookieParser = require('cookie-parser');
-const logger = require('morgan');
-
-const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
-
-const app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+const readConfFile = require("./conf/conf")
+const MongoDBClient = require("./services/mongoSdk")
+const BigMLSdkClient = require("./services/bigMLSdk")
+const runKafkaConsumer = require("./handlers/kafkaHandlerConsumer");
+const trainBigMl = require("./handlers/bigMLHandler");
+const conf = readConfFile()
 
 
-const http = require('http');
+/* Mongo Db */
 
-http.createServer(function (req, res) {
-  res.writeHead(200, {'Content-Type': 'text/plain'});
-  res.end('Hello World!');
-}).listen(8085);
+const clientBigMl = new BigMLSdkClient(conf.bigmlUserName, conf.bigMLapiKey);
+const afterConnect = async (mongoClient) => {
+    console.log("Connected to mongo!")
+    const trainData = await client.readAllCollectionWithoutId(conf.mongoDataDbName, conf.mongoCollectionNameTrain)
+    clientBigMl.connect();
+    console.log(`Got ${trainData.length} documents from collection ${conf.mongoCollectionNameTrain}`)
+    console.log(`Start training data from collection ${conf.mongoCollectionNameTrain}`)
+
+    try {
+        await trainBigMl(clientBigMl, trainData)
+    } catch (e) {
+        console.log("Got an error in train process" + e)
+    }
+
+    runKafkaConsumer(client)
+
+}
+
+const client = new MongoDBClient(conf.mongoDatabaseName, conf.mongoPassword, afterConnect)
+client.connect()
 
 
-const mongoHandler = require("./handlers/mongoHandler")
-module.exports = app;
+
+const express = require('express')
+const app = express()
+const port = 8085
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.json())
+
+app.get('/predict', async (req, res) => {
+    console.log(req.body)
+    const value = await clientBigMl.predict(req.body)
+    res.send({"section":value})
+})
+
+app.listen(port, () => {
+    console.log(`Example app listening at http://localhost:${port}`)
+})

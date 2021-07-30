@@ -5,8 +5,8 @@ const Kafka = require("node-rdkafka");
 const StringDecoder = require('string_decoder').StringDecoder;
 
 module.exports = class KafkaConsumerClient {
-    constructor(prefix,topicsToSubscribe, onConnect, onData, onDisconnected, onErr, onEventErr, onEventLog) {
-        if (topicsToSubscribe == undefined)
+    constructor(prefix,topicsToSubscribeCallback, onConnect,onDisconnected, onErr, onEventErr, onEventLog) {
+        if (topicsToSubscribeCallback == undefined)
             throw new Error("Cannot subscribe to null")
 
         this.kafkaConf = {
@@ -29,9 +29,9 @@ module.exports = class KafkaConsumerClient {
             "auto.offset.reset": "beginning",
         });
 
-        this.topics = topicsToSubscribe.map(t => `${this.prefix}${t}`)
+        this.topics = Object.keys(topicsToSubscribeCallback).map(t => `${this.prefix}${t}`)
+        this.topicCallbacks = topicsToSubscribeCallback;
         this.onConnect = onConnect;
-        this.onData = onData;
         this.onDisconnected = onDisconnected;
         this.onEventErr = onEventErr;
         this.onEventLog = onEventLog;
@@ -48,15 +48,19 @@ module.exports = class KafkaConsumerClient {
             obj.consumer.subscribe(obj.topics);
             obj.consumer.consume();
             obj.onConnect(obj.topics)
+            console.log(arg)
         });
 
-        this.consumer.on("error", function (err) {
-            obj.onErr(err);
-        });
+
 
         this.consumer.on("data", function (m) {
+            console.log(m)
+            const topic = m.topic.split("-")[1]
             const data = JSON.parse(m.value)
-            obj.onData(data)
+            const callback = obj.topicCallbacks[topic];
+            if(callback==undefined)
+                throw Error(`No callback for topic: ${topic}`)
+            callback(data)
         });
 
         this.consumer.on("disconnected", function (arg) {

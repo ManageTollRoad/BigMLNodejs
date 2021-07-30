@@ -11,8 +11,13 @@ module.exports = class MongoDBClient {
     connect() {
         const obj=this;
         this.client = new MongoClient(this.uri, {useNewUrlParser: true, useUnifiedTopology: true});
-        this.client.connect(err => {
-            obj.afterConnect(err)
+        this.client.connect((err,res) => {
+            if(err)
+            {
+                throw err;
+            }
+            obj.client=res;
+            obj.afterConnect(res)
         });
     }
 
@@ -23,6 +28,23 @@ module.exports = class MongoDBClient {
     addDataToCollection(dbName,collectionName,data,afterAddedData){
         console.log(`Append to [${dbName}] db at collection [${collectionName}] new document: ${JSON.stringify(data)}`)
         return this.client.db(dbName).collection(collectionName).insertOne(data,undefined,afterAddedData);
+    }
+
+    async readAllCollectionWithoutId(dbName, collectionName){
+
+
+        return new Promise((resolve, reject) => {
+            this.client.db(dbName).collection(collectionName)
+                .find({},{ projection: { _id: 0}}).toArray((err,result)=>{
+                if(err)
+                    reject(err);
+                else{
+                    console.log(result)
+                    resolve(result);
+                }
+
+            })
+        })
     }
 
 

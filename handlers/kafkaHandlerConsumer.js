@@ -16,7 +16,7 @@ module.exports = runKafkaConsumer = (mongoClient) => {
     const onData = (data) => {
         console.log(`Got new data from kafka on topic ${conf.dataTopic}! data: ${JSON.stringify(data)}`);
         console.log(`Push data: ${JSON.stringify(data)} to mongodb.`);
-        mongoClient.addDataToCollection(dbName,dataCollectionName,data,cb)
+        mongoClient.addDataToCollection(dbName,dataCollectionName,data,undefined)
 
     }
 

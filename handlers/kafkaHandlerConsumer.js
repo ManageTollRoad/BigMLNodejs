@@ -27,7 +27,7 @@ module.exports = runKafkaConsumer = (mongoClient) => {
 
     const topicCallback = {}
     topicCallback[conf.dataTopic] = onData;
-    topicCallback[conf.trainTopic] = onTrain;
+    topicCallback[conf.trainTopic] = ()=>4;
 
 
     const kafkaConsumer = new KafkaConsumerClient(
